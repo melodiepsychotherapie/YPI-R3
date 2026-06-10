@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>YPI-R3 — Attitudes parentales perçues</title>
+<style>
+  :root {
+    --olive:    #818e71;
+    --ocre:     #c0914d;
+    --peche:    #f5b083;
+    --beige-cl: #ffedd6;
+    --vert-sg:  #dcedd1;
+    --beige-sa: #ece5d0;
+    --terrac:   #b67e72;
+    --blanc:    #ffffff;
+    --blanc-c:  #fffeea;
+    --noir:     #1a1a1a;
+    --shadow:   rgba(129,142,113,.15);
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body { font-family: Arial, Helvetica, sans-serif; font-size: 15px; background: var(--beige-sa); color: var(--noir); line-height: 1.6; }
+
+  header { background: var(--olive); color: var(--blanc); padding: 36px 24px 28px; text-align: center; }
+  header h1 { font-family: Georgia, serif; font-size: 1.75rem; font-weight: bold; letter-spacing: .5px; }
+  header p  { margin-top: 8px; font-size: .95rem; opacity: .9; }
+
+  .consigne { max-width: 860px; margin: 28px auto; padding: 22px 28px; background: var(--blanc-c); border-left: 5px solid var(--ocre); border-radius: 4px; box-shadow: 0 2px 8px var(--shadow); }
+  .consigne h2 { font-family: Georgia, serif; color: var(--ocre); font-size: 1.1rem; margin-bottom: 10px; }
+  .consigne p  { font-size: .92rem; margin-bottom: 6px; }
+  .likert-legend { display: flex; flex-wrap: wrap; gap: 6px 14px; margin-top: 10px; font-size: .88rem; font-weight: bold; color: var(--olive); }
+
+  .patient-info { max-width: 860px; margin: 0 auto 24px; background: var(--blanc); border-radius: 6px; padding: 20px 28px; box-shadow: 0 2px 8px var(--shadow); }
+  .patient-info h2 { font-family: Georgia, serif; color: var(--olive); font-size: 1rem; margin-bottom: 14px; }
+  .patient-info .fields { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .patient-info label { display: flex; flex-direction: column; font-size: .88rem; color: #555; }
+  .patient-info input { margin-top: 4px; padding: 7px 10px; border: 1px solid #ccc; border-radius: 4px; font-size: .92rem; font-family: Arial; background: var(--beige-sa); }
+  .patient-info .full { grid-column: 1/-1; }
+
+  .parent-toggle { max-width: 860px; margin: 0 auto 24px; display: grid; grid-template-columns: 1fr 1fr; gap: 0; border-radius: 6px; overflow: hidden; box-shadow: 0 2px 8px var(--shadow); }
+  .parent-toggle button { padding: 14px; font-family: Georgia, serif; font-size: 1rem; font-weight: bold; border: none; cursor: pointer; transition: all .2s; }
+  .parent-toggle button.mere  { background: var(--peche); color: var(--blanc); }
+  .parent-toggle button.pere  { background: var(--olive); color: var(--blanc); }
+  .parent-toggle button.inactive { opacity: .45; filter: grayscale(.4); }
+
+  .parent-label { max-width: 860px; margin: 0 auto 6px; text-align: center; font-family: Georgia, serif; font-size: 1.05rem; color: var(--blanc); padding: 8px; border-radius: 4px; font-weight: bold; }
+  .parent-label.mere { background: var(--peche); }
+  .parent-label.pere { background: var(--olive); }
+
+  /* Bloc statut de la figure parentale */
+  .figure-status-block {
+    max-width: 860px; margin: 0 auto 20px;
+    background: var(--blanc); border-radius: 6px;
+    padding: 18px 24px; box-shadow: 0 2px 8px var(--shadow);
+    border-left: 5px solid var(--ocre);
+  }
+  .figure-status-block h3 { font-family: Georgia, serif; color: var(--ocre); font-size: 1rem; margin-bottom: 12px; }
+  .status-options { display: flex; flex-direction: column; gap: 10px; }
+  .status-option { display: flex; align-items: flex-start; gap: 10px; cursor: pointer; padding: 10px 14px; border-radius: 6px; border: 2px solid transparent; transition: all .15s; }
+  .status-option:hover { background: var(--beige-cl); }
+  .status-option.selected { border-color: var(--ocre); background: var(--blanc-c); }
+  .status-option input[type="radio"] { margin-top: 3px; accent-color: var(--ocre); width: 17px; height: 17px; flex-shrink: 0; cursor: pointer; }
+  .status-option .opt-label { font-weight: bold; font-size: .92rem; color: var(--noir); }
+  .status-option .opt-desc  { font-size: .83rem; color: #666; margin-top: 1px; }
+  .autre-input { margin-top: 8px; display: none; }
+  .autre-input input { width: 100%; padding: 7px 10px; border: 1px solid #ccc; border-radius: 4px; font-size: .9rem; font-family: Arial; background: var(--beige-sa); }
+
+  /* Bannière figure absente */
+  .absent-banner {
+    max-width: 860px; margin: 0 auto 24px;
+    padding: 18px 24px; border-radius: 6px;
+    background: var(--beige-sa); border: 2px dashed #bbb;
+    text-align: center; color: #777; font-size: .92rem; font-style: italic;
+  }
+  .absent-banner strong { display: block; font-size: 1rem; color: #555; margin-bottom: 6px; font-style: normal; }
+
+  .section-block { max-width: 860px; margin: 0 auto 24px; background: var(--blanc); border-radius: 6px; overflow: hidden; box-shadow: 0 2px 8px var(--shadow); }
+  .section-header { padding: 12px 20px; color: var(--blanc); font-family: Georgia, serif; font-size: 1rem; font-weight: bold; }
+  .section-meta { padding: 10px 20px 12px; font-size: .88rem; border-bottom: 1px solid #e8e8e8; }
+  .section-meta .desc   { color: var(--noir); margin-bottom: 4px; }
+  .section-meta .schema { color: var(--olive); font-style: italic; }
+
+  .item-row { display: grid; grid-template-columns: 28px 1fr repeat(6, 38px); align-items: center; gap: 0 6px; padding: 9px 16px; border-bottom: 1px solid #f0ebe6; transition: background .15s; }
+  .item-row:hover { background: var(--beige-cl); }
+  .item-row.disabled { opacity: .35; pointer-events: none; }
+  .item-num  { font-size: .8rem; font-weight: bold; color: var(--olive); text-align: center; }
+  .item-text { font-size: .88rem; line-height: 1.45; }
+  .radio-col { display: flex; flex-direction: column; align-items: center; gap: 3px; }
+  .radio-col span { font-size: .72rem; color: #888; }
+  .radio-col input[type="radio"] { width: 18px; height: 18px; cursor: pointer; accent-color: var(--olive); }
+
+  .score-footer { display: flex; justify-content: space-between; align-items: center; padding: 10px 20px; background: var(--beige-sa); font-size: .88rem; font-weight: bold; color: var(--olive); flex-wrap: wrap; gap: 8px; }
+  .score-val { font-size: 1.1rem; color: var(--terrac); }
+
+  .synthese-block { max-width: 860px; margin: 0 auto 28px; background: var(--blanc-c); border-radius: 6px; padding: 24px 28px; box-shadow: 0 2px 8px var(--shadow); }
+  .synthese-block h2 { font-family: Georgia, serif; color: var(--olive); font-size: 1.15rem; margin-bottom: 16px; }
+  .recap-table { width: 100%; border-collapse: collapse; font-size: .87rem; margin-bottom: 16px; }
+  .recap-table th { background: var(--olive); color: var(--blanc); padding: 8px 10px; text-align: left; }
+  .recap-table td { padding: 7px 10px; border-bottom: 1px solid #e8e8e8; vertical-align: middle; }
+  .recap-table tr:nth-child(even) td { background: var(--beige-sa); }
+  .score-badge { display: inline-block; color: var(--blanc); border-radius: 12px; padding: 2px 10px; font-weight: bold; font-size: .85rem; }
+  .bar-wrap { display: flex; align-items: center; gap: 8px; }
+  .bar-bg   { flex: 1; height: 10px; background: #e0ddd8; border-radius: 5px; overflow: hidden; }
+  .bar-fill { height: 100%; border-radius: 5px; transition: width .4s; }
+  .absent-cell { color: #aaa; font-style: italic; font-size: .83rem; }
+
+  .actions { max-width: 860px; margin: 0 auto 40px; display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; }
+  .btn { padding: 12px 24px; border: none; border-radius: 6px; font-size: .95rem; font-weight: bold; cursor: pointer; font-family: Arial; transition: opacity .2s, transform .1s; display: flex; align-items: center; gap: 8px; }
+  .btn:hover { opacity: .88; transform: translateY(-1px); }
+  .btn-send  { background: var(--olive); color: var(--blanc); }
+  .btn-pdf   { background: var(--terrac); color: var(--blanc); }
+  .btn-word  { background: var(--ocre); color: var(--blanc); }
+  .btn-reset { background: var(--beige-sa); color: var(--noir); border: 1px solid #ccc; }
+
+  .toast { display: none; max-width: 860px; margin: 0 auto 16px; padding: 14px 20px; border-radius: 6px; background: var(--vert-sg); color: var(--noir); font-size: .92rem; border-left: 4px solid var(--olive); }
+  .toast.show { display: block; }
+  .toast.error { background: #fde8e8; border-color: var(--terrac); }
+
+  .note-clinique { max-width: 860px; margin: 0 auto 40px; padding: 16px 22px; border-left: 4px solid var(--olive); background: var(--vert-sg); border-radius: 4px; font-size: .82rem; color: #444; font-style: italic; }
+  footer { text-align: center; padding: 20px; font-size: .8rem; color: #888; border-top: 1px solid #ddd; }
+
+  @media (max-width: 600px) {
+    .item-row { grid-template-columns: 24px 1fr repeat(6, 30px); gap: 0 3px; padding: 8px 10px; }
+    .patient-info .fields { grid-template-columns: 1fr; }
+    header h1 { font-size: 1.3rem; }
+    .status-options { gap: 8px; }
+  }
+  @media print {
+    .actions, .parent-toggle, .toast, .figure-status-block { display: none !important; }
+    body { background: white; }
+    .section-block, .synthese-block, .consigne, .patient-info { box-shadow: none; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Inventaire des Attitudes Parentales de Young — YPI-R3</h1>
+  <p>Questionnaire d'exploration clinique · Cabinet Mélodie Psychothérapie</p>
+</header>
+
+<div class="consigne">
+  <h2>Comment remplir ce questionnaire ?</h2>
+  <p>Pensez à vos parents (ou aux personnes qui vous ont élevé(e)) durant votre <strong>enfance et adolescence</strong>. Pour chaque affirmation, indiquez à quelle fréquence ce comportement décrivait votre parent.</p>
+  <p>Vous remplirez ce questionnaire <strong>deux fois</strong> : d'abord pour votre <strong>mère</strong> (ou figure maternelle), puis pour votre <strong>père</strong> (ou figure paternelle). Si l'une de ces figures était absente, vous pourrez l'indiquer.</p>
+  <div class="likert-legend">
+    <span>1 = Jamais</span><span>2 = Rarement</span><span>3 = Parfois</span>
+    <span>4 = Souvent</span><span>5 = Très souvent</span><span>6 = Toujours</span>
+  </div>
+</div>
+
+<div class="patient-info">
+  <h2>Vos informations</h2>
+  <div class="fields">
+    <label>Prénom (ou initiales) <input type="text" id="prenom" placeholder="Ex. : M. D."></label>
+    <label>Date de naissance <input type="date" id="ddn"></label>
+    <label>Date de passation <input type="date" id="datepass"></label>
+    <label class="full">Contexte / motif (facultatif) <input type="text" id="motif" placeholder="Ex. : suivi thérapeutique"></label>
+  </div>
+</div>
+
+<!-- Toggle parent -->
+<div class="parent-toggle">
+  <button class="mere" onclick="setParent('mere')">👩 MÈRE (ou figure maternelle)</button>
+  <button class="pere inactive" onclick="setParent('pere')">👨 PÈRE (ou figure paternelle)</button>
+</div>
+<div class="parent-label mere" id="parent-label">Vous répondez actuellement pour : MÈRE</div>
+
+<!-- Statut de la figure -->
+<div class="figure-status-block" id="figure-status-block">
+  <h3 id="figure-status-title">Quelle place a occupé cette figure dans votre enfance ?</h3>
+  <div class="status-options" id="status-options"></div>
+</div>
+
+<div id="questionnaire"></div>
+
+<div class="synthese-block" id="synthese" style="display:none">
+  <h2>📊 Synthèse des scores</h2>
+  <div id="synthese-content"></div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<div class="actions">
+  <button class="btn btn-send" onclick="sendResults()">📧 Envoyer à ma thérapeute</button>
+  <button class="btn btn-pdf"  onclick="exportPDF()">📄 Télécharger en PDF</button>
+  <button class="btn btn-word" onclick="exportWord()">📝 Télécharger en Word</button>
+  <button class="btn btn-reset" onclick="resetAll()">🔄 Recommencer</button>
+</div>
+
+<div class="note-clinique">
+  <strong>Note :</strong> Ce questionnaire est un outil d'exploration clinique inspiré du YPI-R3 (Louis et al., 2018–2022). Il ne constitue pas un outil diagnostique. Les résultats seront partagés avec votre thérapeute et utilisés dans le cadre de votre suivi.
+</div>
+
+<footer>© Cabinet de psychothérapie – SIRET 948 116 967 00019 · contact@melodiepsychotherapie.fr</footer>
+
+<script>
+const SUBSCALES = [
+  { code:"OC",  label:"Surcontrôle", facteur:"Autoritaire / Abusif", color:"#b67e72", bg:"#ffedd6",
+    desc:"Parent très contrôlant, exigeant, imposant des règles strictes.", schemas:"Assujettissement · Manque de maîtrise de soi",
+    items:["Décidait de tout à ma place, même pour de petites choses.","Imposait des règles très strictes et punissait si je ne les respectais pas.","Voulait contrôler tous les aspects de ma vie."] },
+  { code:"EID", label:"Inhibition émotionnelle et privation", facteur:"Autoritaire / Abusif", color:"#b67e72", bg:"#ffedd6",
+    desc:"Parent froid, peu démonstratif, décourage l'expression des émotions.", schemas:"Carence affective · Inhibition émotionnelle",
+    items:["Était peu démonstratif(ve) affectivement envers moi.","Avait du mal à être joueur(se) ou expressif(ve) avec moi.","Ne me donnait pas beaucoup de chaleur ou d'affection."] },
+  { code:"CSS", label:"Compétitivité et recherche de statut", facteur:"Autoritaire / Abusif", color:"#b67e72", bg:"#ffedd6",
+    desc:"Parent centré sur la performance, les résultats, le statut social.", schemas:"Échec · Idéaux exigeants",
+    items:["Attachait beaucoup d'importance à mes résultats scolaires.","Me comparait souvent aux autres enfants.","Voulait que je réussisse mieux que les autres."] },
+  { code:"DR",  label:"Dégradation et rejet", facteur:"Autoritaire / Abusif", color:"#b67e72", bg:"#ffedd6",
+    desc:"Parent humiliant, critiquant, rabaissant l'enfant.", schemas:"Honte / Défectivité · Rejet",
+    items:["Me critiquait ou me rabaissait devant les autres.","Me faisait souvent honte ou me disait que j'étais nul(le).","Me rejetait ou me repoussait quand j'avais besoin d'aide."] },
+  { code:"PA",  label:"Punition et abus", facteur:"Autoritaire / Abusif", color:"#b67e72", bg:"#ffedd6",
+    desc:"Parent punitif, violent verbalement ou physiquement.", schemas:"Punition · Méfiance / Abus",
+    items:["Me punissait de façon sévère ou humiliante.","Avait des réactions violentes ou imprévisibles envers moi.","Me traitait de façon injuste ou blessante."] },
+  { code:"UI",  label:"Manque de fiabilité et irresponsabilité", facteur:"Négligent / Peu fiable", color:"#818e71", bg:"#dcedd1",
+    desc:"Parent imprévisible, peu fiable, absent émotionnellement.", schemas:"Abandon · Instabilité",
+    items:["N'était pas là quand j'en avais vraiment besoin.","Était imprévisible : parfois présent(e), parfois absent(e) sans raison.","Promettait des choses et ne les tenait pas."] },
+  { code:"NIG", label:"Négligence et guidance insuffisante", facteur:"Négligent / Peu fiable", color:"#818e71", bg:"#dcedd1",
+    desc:"Parent absent, peu investi, ne donne pas de cadre.", schemas:"Carence affective · Manque de limites",
+    items:["Ne s'intéressait pas vraiment à ce que je faisais ou ressentais.","Me laissait me débrouiller seul(e) sans me guider.","N'était pas impliqué(e) dans mon éducation ou ma vie quotidienne."] },
+  { code:"SE",  label:"Exclusion sociale", facteur:"Négligent / Peu fiable", color:"#818e71", bg:"#dcedd1",
+    desc:"Parent qui isole l'enfant des autres.", schemas:"Isolement social · Exclusion",
+    items:["Ne m'encourageait pas à avoir des amis ou à sortir.","Me mettait à l'écart des activités sociales ou familiales.","Parlait des autres de façon méfiante ou négative."] },
+  { code:"OO",  label:"Surprotection et surindulgence", facteur:"Surprotecteur / Surindulgent", color:"#c0914d", bg:"#fffeea",
+    desc:"Parent surprotecteur, anxieux, fait les choses à la place de l'enfant.", schemas:"Vulnérabilité · Dépendance · Manque de limites",
+    items:["Faisait les choses à ma place par peur que je me blesse ou échoue.","S'inquiétait excessivement pour ma sécurité.","Me gâtait ou cédait à toutes mes demandes."] },
+  { code:"IE",  label:"Intrusion et exploitation", facteur:"Surprotecteur / Surindulgent", color:"#c0914d", bg:"#fffeea",
+    desc:"Parent envahissant, sans respect des limites.", schemas:"Assujettissement · Sacrifice de soi",
+    items:["Se confiait à moi comme si j'étais son(sa) confident(e), pas son enfant.","Utilisait mes succès ou mes échecs pour se valoriser ou se critiquer.","Envahissait mon espace personnel ou mes affaires."] },
+];
+
+let currentParent = 'mere';
+const responses = { mere: {}, pere: {} };
+
+// Statut de la figure parentale : 'present' | 'absent' | 'autre'
+const figureStatus = { mere: 'present', pere: 'present' };
+// Nom de la figure de substitution si 'autre'
+const figureAutre  = { mere: '', pere: '' };
+
+// ─── Libellés dynamiques selon statut ────────────────────────────────────────
+function getFigureLabel(p) {
+  if (figureStatus[p] === 'absent') return p === 'mere' ? 'Mère — absente' : 'Père — absent';
+  if (figureStatus[p] === 'autre')  return figureAutre[p] || (p === 'mere' ? 'Figure maternelle' : 'Figure paternelle');
+  return p === 'mere' ? 'Mère' : 'Père';
+}
+
+// ─── Rendu du bloc statut ─────────────────────────────────────────────────────
+function renderStatusBlock() {
+  const p = currentParent;
+  const pLabel = p === 'mere' ? 'maternelle' : 'paternelle';
+  document.getElementById('figure-status-title').textContent =
+    `Quelle place a occupé la figure ${pLabel} dans votre enfance ?`;
+
+  const opts = document.getElementById('status-options');
+  opts.innerHTML = `
+    <label class="status-option ${figureStatus[p]==='present'?'selected':''}" onclick="setFigureStatus('${p}','present')">
+      <input type="radio" name="status_${p}" value="present" ${figureStatus[p]==='present'?'checked':''}>
+      <div>
+        <div class="opt-label">👤 Cette figure était présente dans mon enfance</div>
+        <div class="opt-desc">Je vais répondre au questionnaire pour cette figure.</div>
+      </div>
+    </label>
+    <label class="status-option ${figureStatus[p]==='absent'?'selected':''}" onclick="setFigureStatus('${p}','absent')">
+      <input type="radio" name="status_${p}" value="absent" ${figureStatus[p]==='absent'?'checked':''}>
+      <div>
+        <div class="opt-label">🚫 Cette figure était absente ou non significative</div>
+        <div class="opt-desc">Je n'ai pas eu de relation avec cette figure parentale.</div>
+      </div>
+    </label>
+    <label class="status-option ${figureStatus[p]==='autre'?'selected':''}" onclick="setFigureStatus('${p}','autre')">
+      <input type="radio" name="status_${p}" value="autre" ${figureStatus[p]==='autre'?'checked':''}>
+      <div>
+        <div class="opt-label">🔄 Une autre personne a joué ce rôle</div>
+        <div class="opt-desc">Belle-mère, beau-père, grand-parent, famille d'accueil…</div>
+        <div class="autre-input" id="autre-input-${p}" style="${figureStatus[p]==='autre'?'display:block':'display:none'}">
+          <input type="text" id="autre-nom-${p}" placeholder="Qui a joué ce rôle ? (ex. : grand-mère maternelle)"
+            value="${figureAutre[p]}"
+            oninput="figureAutre['${p}']=this.value;updateSynthese()"
+            onclick="event.stopPropagation()">
+        </div>
+      </div>
+    </label>`;
+}
+
+function setFigureStatus(p, val) {
+  figureStatus[p] = val;
+  renderStatusBlock();
+  renderQuestionnaire();
+  updateSynthese();
+  // Focus champ texte si "autre"
+  if (val === 'autre') {
+    setTimeout(() => document.getElementById(`autre-nom-${p}`)?.focus(), 50);
+  }
+}
+
+// ─── Toggle parent ────────────────────────────────────────────────────────────
+function setParent(p) {
+  currentParent = p;
+  document.querySelectorAll('.parent-toggle button').forEach(b => b.classList.add('inactive'));
+  document.querySelector('.parent-toggle button.' + p).classList.remove('inactive');
+  const lbl = document.getElementById('parent-label');
+  lbl.className = 'parent-label ' + p;
+  const statusLabel = figureStatus[p] === 'absent' ? ' (absente)' : figureStatus[p] === 'autre' && figureAutre[p] ? ` — ${figureAutre[p]}` : '';
+  lbl.textContent = 'Vous répondez actuellement pour : ' + (p === 'mere' ? 'MÈRE' : 'PÈRE') + statusLabel;
+  renderStatusBlock();
+  renderQuestionnaire();
+  updateSynthese();
+}
+
+// ─── Questionnaire ────────────────────────────────────────────────────────────
+function renderQuestionnaire() {
+  const container = document.getElementById('questionnaire');
+  container.innerHTML = '';
+
+  if (figureStatus[currentParent] === 'absent') {
+    const banner = document.createElement('div');
+    banner.className = 'absent-banner';
+    banner.innerHTML = `<strong>Figure parentale absente ou non significative</strong>
+      Les items ci-dessous ne s'appliquent pas à votre situation pour cette figure.<br>
+      Vous pouvez passer directement à l'autre figure parentale ou envoyer vos résultats.`;
+    container.appendChild(banner);
+    return;
+  }
+
+  const isAutre = figureStatus[currentParent] === 'autre';
+  const autreNom = figureAutre[currentParent] || (currentParent === 'mere' ? 'figure maternelle' : 'figure paternelle');
+
+  let n = 1;
+  SUBSCALES.forEach(sub => {
+    const block = document.createElement('div');
+    block.className = 'section-block';
+
+    const hdr = document.createElement('div');
+    hdr.className = 'section-header';
+    hdr.style.background = sub.color;
+    hdr.innerHTML = `<span>${sub.code} — ${sub.label}</span> <small style="opacity:.8;font-size:.82rem;font-weight:normal;">[${sub.facteur}]</small>`;
+    block.appendChild(hdr);
+
+    const meta = document.createElement('div');
+    meta.className = 'section-meta';
+    meta.style.background = sub.bg;
+    meta.innerHTML = `<div class="desc">${sub.desc}</div><div class="schema">Schéma(s) associé(s) : ${sub.schemas}</div>`;
+    block.appendChild(meta);
+
+    sub.items.forEach((txt, ii) => {
+      const key = `${sub.code}_${ii}`;
+      // Adapter le texte pour une figure de substitution si besoin
+      const displayTxt = isAutre
+        ? txt.replace(/^(Il\/Elle|Elle|Il)\b/, autreNom)
+        : txt;
+      const row = document.createElement('div');
+      row.className = 'item-row';
+      let radios = '';
+      for (let v = 1; v <= 6; v++) {
+        const checked = responses[currentParent][key] === v ? 'checked' : '';
+        radios += `<div class="radio-col"><span>${v}</span><input type="radio" name="${currentParent}_${key}" value="${v}" ${checked} onchange="saveResponse('${key}',${v})"></div>`;
+      }
+      row.innerHTML = `<div class="item-num">${n}</div><div class="item-text">${displayTxt}</div>${radios}`;
+      block.appendChild(row);
+      n++;
+    });
+
+    const sf = document.createElement('div');
+    sf.className = 'score-footer';
+    sf.id = `score-footer-${sub.code}`;
+    block.appendChild(sf);
+    updateScoreFooter(sub.code);
+
+    container.appendChild(block);
+  });
+}
+
+function saveResponse(key, val) {
+  responses[currentParent][key] = val;
+  updateScores();
+  updateSynthese();
+}
+
+function calcScore(code, p) {
+  const parent = p || currentParent;
+  if (figureStatus[parent] === 'absent') return null;
+  const sub = SUBSCALES.find(s => s.code === code);
+  let total = 0, count = 0;
+  sub.items.forEach((_, i) => {
+    const v = responses[parent][`${code}_${i}`];
+    if (v !== undefined) { total += v; count++; }
+  });
+  return count === sub.items.length ? total : null;
+}
+
+function getAutoIntensity(score, max) {
+  if (score === null) return null;
+  const avg = score / (max / 6);
+  if (avg <= 2.5) return { label:'Faible',  color:'#818e71' };
+  if (avg <= 4.0) return { label:'Modérée', color:'#c0914d' };
+  return            { label:'Élevée',  color:'#b67e72' };
+}
+
+function updateScoreFooter(code) {
+  const sf = document.getElementById(`score-footer-${code}`);
+  if (!sf) return;
+  const sub = SUBSCALES.find(s => s.code === code);
+  const score = calcScore(code);
+  const max = sub.items.length * 6;
+  const intens = getAutoIntensity(score, max);
+  sf.innerHTML = `
+    <span>Score <strong>${code}</strong> : <span class="score-val">${score !== null ? score+' / '+max : '—'}</span></span>
+    ${intens
+      ? `<span style="background:${intens.color};color:#fff;padding:3px 12px;border-radius:12px;font-size:.85rem;font-weight:bold">Intensité : ${intens.label}</span>`
+      : '<span style="color:#aaa;font-size:.85rem">Intensité calculée automatiquement</span>'}`;
+}
+
+function updateScores() {
+  SUBSCALES.forEach(sub => updateScoreFooter(sub.code));
+}
+
+// ─── Synthèse ─────────────────────────────────────────────────────────────────
+function updateSynthese() {
+  const hasAny = Object.keys(responses.mere).length > 0
+               || Object.keys(responses.pere).length > 0
+               || figureStatus.mere !== 'present'
+               || figureStatus.pere !== 'present';
+  const synth = document.getElementById('synthese');
+  if (!hasAny) { synth.style.display = 'none'; return; }
+  synth.style.display = 'block';
+
+  const mLabel = getFigureLabel('mere');
+  const pLabel = getFigureLabel('pere');
+
+  let html = `<table class="recap-table"><thead><tr>
+    <th>Dimension</th><th>Facteur</th>
+    <th>Score — ${mLabel}</th>
+    <th>Score — ${pLabel}</th>
+  </tr></thead><tbody>`;
+
+  SUBSCALES.forEach(sub => {
+    const sm = calcScore(sub.code, 'mere');
+    const sp = calcScore(sub.code, 'pere');
+    const max = sub.items.length * 6;
+    const pct = (s) => s !== null ? Math.round((s/max)*100) : 0;
+
+    const mAbsent = figureStatus.mere === 'absent';
+    const pAbsent = figureStatus.pere === 'absent';
+    const intM = getAutoIntensity(sm, max);
+    const intP = getAutoIntensity(sp, max);
+
+    html += `<tr>
+      <td><strong>${sub.code}</strong> — ${sub.label}</td>
+      <td><small>${sub.facteur}</small></td>
+      <td>${mAbsent
+        ? '<span class="absent-cell">Figure absente</span>'
+        : `<div class="bar-wrap"><div class="bar-bg"><div class="bar-fill" style="width:${pct(sm)}%;background:#f5b083"></div></div>
+           <span class="score-badge" style="background:#f5b083">${sm !== null ? sm+'/'+max : '—'}</span>
+           ${intM ? `<span style="background:${intM.color};color:#fff;padding:2px 8px;border-radius:10px;font-size:.78rem">${intM.label}</span>` : ''}</div>`}
+      </td>
+      <td>${pAbsent
+        ? '<span class="absent-cell">Figure absente</span>'
+        : `<div class="bar-wrap"><div class="bar-bg"><div class="bar-fill" style="width:${pct(sp)}%;background:#818e71"></div></div>
+           <span class="score-badge" style="background:#818e71">${sp !== null ? sp+'/'+max : '—'}</span>
+           ${intP ? `<span style="background:${intP.color};color:#fff;padding:2px 8px;border-radius:10px;font-size:.78rem">${intP.label}</span>` : ''}</div>`}
+      </td>
+    </tr>`;
+  });
+  html += '</tbody></table>';
+  document.getElementById('synthese-content').innerHTML = html;
+}
+
+// ─── Infos patient ────────────────────────────────────────────────────────────
+function getPatientInfo() {
+  return {
+    prenom:   document.getElementById('prenom').value   || '—',
+    ddn:      document.getElementById('ddn').value      || '—',
+    datepass: document.getElementById('datepass').value || new Date().toLocaleDateString('fr-FR'),
+    motif:    document.getElementById('motif').value    || '—',
+  };
+}
+
+// ─── Email ────────────────────────────────────────────────────────────────────
+function sendResults() {
+  const info = getPatientInfo();
+  let body = `YPI-R3 — Résultats\n\nPatient : ${info.prenom} | Né(e) le : ${info.ddn} | Date : ${info.datepass}\nMotif : ${info.motif}\n`;
+
+  ['mere','pere'].forEach(p => {
+    const lbl = getFigureLabel(p);
+    body += `\n=== ${lbl.toUpperCase()} ===\n`;
+    if (figureStatus[p] === 'absent') {
+      body += `Figure absente ou non significative — section non complétée.\n`;
+      return;
+    }
+    SUBSCALES.forEach(sub => {
+      const score = calcScore(sub.code, p);
+      const max = sub.items.length * 6;
+      const int2 = getAutoIntensity(score, max);
+      body += `${sub.code} - ${sub.label} : ${score !== null ? score+'/'+max : 'non complété'} (Intensité : ${int2 ? int2.label : '—'})\n`;
+    });
+  });
+
+  body += '\n\nEnvoyé depuis le questionnaire YPI-R3 — Cabinet Mélodie Psychothérapie';
+  const subject = encodeURIComponent(`YPI-R3 — Résultats — ${info.prenom} — ${info.datepass}`);
+  window.location.href = `mailto:contact@melodiepsychotherapie.fr?subject=${subject}&body=${encodeURIComponent(body)}`;
+  showToast("Votre messagerie va s'ouvrir pour envoyer les résultats.", false);
+}
+
+// ─── PDF ──────────────────────────────────────────────────────────────────────
+function exportPDF() {
+  showToast("Préparation du PDF… La fenêtre d'impression va s'ouvrir.", false);
+  setTimeout(() => window.print(), 400);
+}
+
+// ─── Word ─────────────────────────────────────────────────────────────────────
+function exportWord() {
+  const info = getPatientInfo();
+  let html = `<html><head><meta charset="UTF-8">
+  <style>
+    body{font-family:Arial;font-size:11pt;color:#1a1a1a;}
+    h1{font-family:Georgia;font-size:16pt;color:#818e71;text-align:center;}
+    h2{font-family:Georgia;font-size:13pt;color:#c0914d;margin-top:18pt;}
+    table{border-collapse:collapse;width:100%;font-size:10pt;}
+    th{background:#818e71;color:#fff;padding:5pt 8pt;text-align:left;}
+    td{padding:5pt 8pt;border-bottom:1pt solid #e0e0e0;vertical-align:top;}
+    tr:nth-child(even) td{background:#f5f5f0;}
+    .info{background:#ece5d0;padding:8pt;margin-bottom:12pt;}
+    .score{font-weight:bold;color:#818e71;}
+    .absent{color:#aaa;font-style:italic;}
+    .note{font-size:9pt;font-style:italic;color:#666;margin-top:16pt;border-left:3pt solid #818e71;padding-left:8pt;}
+  </style></head><body>
+  <h1>Inventaire des Attitudes Parentales de Young — YPI-R3</h1>
+  <div class="info">
+    <strong>Patient :</strong> ${info.prenom} &nbsp;|&nbsp;
+    <strong>Né(e) le :</strong> ${info.ddn} &nbsp;|&nbsp;
+    <strong>Date :</strong> ${info.datepass} &nbsp;|&nbsp;
+    <strong>Motif :</strong> ${info.motif}
+  </div>`;
+
+  ['mere','pere'].forEach(p => {
+    const lbl = getFigureLabel(p);
+    const icon = p === 'mere' ? '👩' : '👨';
+    html += `<h2>${icon} ${lbl}</h2>`;
+    if (figureStatus[p] === 'absent') {
+      html += `<p class="absent">Figure absente ou non significative — section non complétée.</p>`;
+      return;
+    }
+    html += `<table><thead><tr><th>Code</th><th>Dimension</th><th>Score</th><th>Intensité</th><th>Facteur</th></tr></thead><tbody>`;
+    SUBSCALES.forEach(sub => {
+      const score = calcScore(sub.code, p);
+      const max = sub.items.length * 6;
+      const int3 = getAutoIntensity(score, max);
+      html += `<tr><td><strong>${sub.code}</strong></td><td>${sub.label}</td>
+        <td class="score">${score !== null ? score+'/'+max : 'N/C'}</td>
+        <td>${int3 ? int3.label : '—'}</td>
+        <td>${sub.facteur}</td></tr>`;
+    });
+    html += `</tbody></table><br>
+    <table><thead><tr><th>N°</th><th>Affirmation</th><th>Réponse</th></tr></thead><tbody>`;
+    let n = 1;
+    SUBSCALES.forEach(sub => {
+      sub.items.forEach((txt, i) => {
+        const v = responses[p][`${sub.code}_${i}`];
+        html += `<tr><td>${n++}</td><td>${txt}</td><td>${v !== undefined ? v : '—'}</td></tr>`;
+      });
+    });
+    html += `</tbody></table><br>`;
+  });
+
+  html += `<div class="note">Outil d'exploration clinique inspiré du YPI-R3 (Louis et al., 2018–2022). © Cabinet de psychothérapie – SIRET 948 116 967 00019</div></body></html>`;
+
+  const blob = new Blob(['\ufeff' + html], { type: 'application/msword' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `YPI_R3_${info.prenom.replace(/\s/g,'_')}_${info.datepass}.doc`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+  showToast('Le fichier Word a été téléchargé.', false);
+}
+
+// ─── Reset ────────────────────────────────────────────────────────────────────
+function resetAll() {
+  if (!confirm('Réinitialiser toutes les réponses ?')) return;
+  ['mere','pere'].forEach(p => {
+    Object.keys(responses[p]).forEach(k => delete responses[p][k]);
+    figureStatus[p] = 'present';
+    figureAutre[p]  = '';
+  });
+  ['prenom','ddn','datepass','motif'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('datepass').value = new Date().toISOString().split('T')[0];
+  currentParent = 'mere';
+  document.querySelectorAll('.parent-toggle button').forEach(b => b.classList.add('inactive'));
+  document.querySelector('.parent-toggle button.mere').classList.remove('inactive');
+  const lbl = document.getElementById('parent-label');
+  lbl.className = 'parent-label mere';
+  lbl.textContent = 'Vous répondez actuellement pour : MÈRE';
+  renderStatusBlock();
+  renderQuestionnaire();
+  document.getElementById('synthese').style.display = 'none';
+}
+
+function showToast(msg, isError) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show' + (isError ? ' error' : '');
+  setTimeout(() => t.className = 'toast', 4500);
+}
+
+// Init
+document.getElementById('datepass').value = new Date().toISOString().split('T')[0];
+renderStatusBlock();
+renderQuestionnaire();
+</script>
+</body>
+</html>
